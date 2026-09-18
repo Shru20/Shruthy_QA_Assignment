@@ -1,0 +1,217 @@
+name: Add Candidate as Collaborator (With Approval)
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  add-collaborator:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Check if already approved
+        id: check-approved
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.WORKFLOW_TOKEN_BE }}
+          script: |
+            const labels = context.payload.issue.labels || [];
+            const isApproved = labels.some(label => label.name === 'approved');
+            
+            if (isApproved) {
+              console.log('Issue already approved - skipping to prevent duplicates');
+              process.exit(0);
+            }
+            
+            core.setOutput('should-continue', 'true');
+
+      - name: Check if comment is approval from owner
+        id: check-approval
+        if: steps.check-approved.outputs.should-continue == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.WORKFLOW_TOKEN_BE }}
+          script: |
+            const comment = context.payload.comment.body;
+            const user = context.payload.comment.user.login;
+            
+            // Get repo owner
+            const repo = await github.rest.repos.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            
+            const isOwner = user === repo.data.owner.login;
+            
+            // Check if comment contains approval keyword
+            const isApproved = comment.toLowerCase().includes('approve') || 
+                              comment.toLowerCase().includes('/approve');
+            
+            console.log(`Comment from: ${user}, Owner: ${repo.data.owner.login}, IsOwner: ${isOwner}`);
+            console.log(`Approval keyword found: ${isApproved}`);
+            
+            if (!isOwner) {
+              console.log('Only repo owner can approve');
+              process.exit(0);
+            }
+            
+            if (!isApproved) {
+              console.log('Comment does not contain approval keyword');
+              process.exit(0);
+            }
+            
+            core.setOutput('is-approved', 'true');
+
+      - name: Extract GitHub username from issue
+        id: extract
+        if: steps.check-approval.outputs.is-approved == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.WORKFLOW_TOKEN_BE }}
+          script: |
+            const issue = context.payload.issue.body || '';
+            console.log(`Issue body: ${issue}`);
+            
+            // Extract username - look for various formats
+            // Format 1: "GitHub Username: username"
+            let usernameMatch = issue.match(/[Gg]ithub\s+[Uu]sername:?\s*@?([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,38}[a-zA-Z0-9])?)/);
+            
+            // Format 2: Just @username or username
+            if (!usernameMatch) {
+              usernameMatch = issue.match(/@?([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,38}[a-zA-Z0-9])?)/);
+            }
+            
+            if (usernameMatch && usernameMatch[1]) {
+              const username = usernameMatch[1];
+              core.setOutput('username', username);
+              console.log(`Extracted username: ${username}`);
+            } else {
+              console.log('Could not extract GitHub username from issue body');
+              console.log('Please ensure issue body contains GitHub username');
+              process.exit(0);
+            }
+
+#      - name: Validate collaborator token
+#        id: validate-token
+#        if: steps.extract.outputs.username
+#        shell: bash
+#        run: |
+#          if [ -z "${{ secrets.COLLAB_TOKEN }}" ]; then
+#            echo "::error::Missing required repo secret COLLAB_TOKEN. Configure it at: https://github.com/sangeetha-rageswaran/qa_backend_assignment_template/settings/secrets/actions"
+#            exit 1
+#          fi
+#          echo "token-ok=true" >> "$GITHUB_OUTPUT"
+
+      - name: Add collaborator
+        id: add-step
+        if: steps.extract.outputs.username
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.WORKFLOW_TOKEN_BE }}
+          script: |
+            const username = '${{ steps.extract.outputs.username }}';
+            
+            try {
+              console.log(`Attempting to add ${username} as collaborator...`);
+            
+              // Verify user exists first
+              try {
+                await github.rest.users.getByUsername({
+                  username: username
+                });
+                console.log(`User ${username} exists on GitHub`);
+              } catch (userError) {
+                console.error(`User ${username} not found on GitHub`);
+                core.setOutput('error', `User ${username} not found on GitHub`);
+                process.exit(0);
+              }
+            
+              // Add collaborator with pull permission
+              const response = await github.rest.repos.addCollaborator({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                username: username,
+                permission: 'pull'
+              });
+            
+              console.log(`Response status: ${response.status}`);
+            
+              if (response.status === 201) {
+                console.log(`✓ Invitation sent to ${username}`);
+                core.setOutput('added', 'true');
+                core.setOutput('was-invited', 'true');
+              } else if (response.status === 204) {
+                console.log(`${username} was already a collaborator, permissions updated`);
+                core.setOutput('added', 'true');
+                core.setOutput('was-invited', 'false');
+              }
+            } catch (error) {
+              console.error(`Error: ${error.status} - ${error.message}`);
+              core.setOutput('error', error.message);
+              process.exit(0);
+            }
+
+      - name: Post approval comment
+        if: steps.extract.outputs.username && steps.add-step.outputs.added == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.WORKFLOW_TOKEN_BE }}
+          script: |
+            const username = '${{ steps.extract.outputs.username }}';
+            const wasInvited = '${{ steps.add-step.outputs.was-invited }}';
+            const error = '${{ steps.add-step.outputs.error }}';
+            
+            let message = '';
+            
+            if (error && error !== '' && error !== 'null') {
+              message = `❌ Error: ${error}`;
+            } else if (wasInvited === 'true') {
+              message = `✅ **Approved!** @${username} has been added as a collaborator!\n\n📝 You can now access the template and generate your own repository:\n\n🔗 **[Use this template →](https://github.com/new?template_name=qa_backend_assignment_template&template_owner=sangeetha-rageswaran)**\n\nClick the link above to create your own repo from this template.`;
+            } else {
+              message = `✅ **Already a collaborator!** @${username} already has access.\n\n📝 You can now access the template and generate your own repository:\n\n🔗 **[Use this template →](https://github.com/new?template_name=qa_backend_assignment_template&template_owner=sangeetha-rageswaran)**\n\nClick the link above to create your own repo from this template.`;
+            }
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: message
+            });
+            
+            console.log(`Comment posted successfully`);
+
+      - name: Add approved label to prevent future runs
+        if: steps.extract.outputs.username && steps.add-step.outputs.added == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.WORKFLOW_TOKEN_BE }}
+          script: |
+            // Delay to allow any concurrent operations to finish
+            await new Promise(resolve => setTimeout(resolve, 50000));
+      
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['approved']
+            });
+            
+            console.log(`Added 'approved' label to prevent duplicate runs`);
+
+      - name: Close the issue
+        if: steps.extract.outputs.username && steps.add-step.outputs.added == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.WORKFLOW_TOKEN_BE }}
+          script: |
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed'
+            });
+            
+            console.log(`✓ Issue closed`);

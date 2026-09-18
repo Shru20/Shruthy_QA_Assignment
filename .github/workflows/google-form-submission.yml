@@ -1,0 +1,44 @@
+name: Google Form Candidate Submission
+
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: 'GitHub username from form'
+        required: true
+        type: string
+
+jobs:
+  create-issue:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Create issue for candidate
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const username = '${{ inputs.username }}';
+            
+            // Check if user exists on GitHub
+            try {
+              await github.rest.users.getByUsername({
+                username: username
+              });
+              
+              // Create issue
+              const issue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `Candidate Application: ${username}`,
+                body: `GitHub Username: ${username}\n\nForm submitted on: ${new Date().toISOString()}\n\nPlease review and comment \`approve\` to add as collaborator.`,
+                labels: ['candidate-application']
+              });
+              
+              console.log(`✓ Issue created: #${issue.data.number}`);
+            } catch (error) {
+              console.error(`Error: ${error.message}`);
+              throw error;
+            }
