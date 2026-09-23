@@ -1,15 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+
+    <!--
+      Log level for project classes. Override without editing this file:
+        mvn test -Dlog.level=DEBUG
+      DEBUG surfaces each API call and assertion, which is the fastest way to
+      diagnose a failure that only reproduces in CI.
+    -->
+    <property name="LOG_LEVEL" value="${log.level:-INFO}"/>
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{28} - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <root level="INFO">
-        <appender-ref ref="STDOUT" />
+    <!-- Project classes: client calls, assertions, configuration resolution. -->
+    <logger name="com.abnamro.assignment" level="${LOG_LEVEL}"/>
+
+    <!--
+      Third-party HTTP stack. Kept at WARN: REST Assured and HttpClient emit
+      per-connection detail at DEBUG that buries the test output and, in the
+      case of wire logging, would print the Authorization header.
+    -->
+    <logger name="io.restassured" level="WARN"/>
+    <logger name="org.apache.http" level="WARN"/>
+
+    <root level="WARN">
+        <appender-ref ref="STDOUT"/>
     </root>
 
-    <logger name="com.abnamro.assignment" level="INFO" />
 </configuration>
-
