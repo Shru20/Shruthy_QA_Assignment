@@ -101,18 +101,19 @@ jobs:
           retention-days: 14
 
       # Only the default branch publishes to Pages. Uploading from every branch
-      # would have feature work and PRs overwrite the canonical report.
+      # would let feature work and PRs overwrite the canonical report.
       - name: Upload Pages artifact
-        if: always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: always() && github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: target/site/allure-maven-plugin
+          if-no-files-found: error
 
   deploy-report:
     name: Publish Allure Report to Pages
     needs: test
     # Runs on failure so a red report is still published, but not on cancel.
-    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    if: ${{ !cancelled() && github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
