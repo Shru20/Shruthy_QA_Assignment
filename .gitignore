@@ -27,3 +27,9 @@ hs_err_pid*
 .idea
 target
 *.iml
+
+# Local secrets / environment overrides - never commit these
+.env
+.env.*
+*.properties
+application.properties

@@ -1,0 +1,108 @@
+name: GitLab Issues API Tests
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:   # allow manual runs from the Actions tab
+
+# Permissions required to deploy the Allure report to GitHub Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent Pages deployment.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Run API Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      # Credentials come from repository secrets and are exposed as environment
+      # variables. At runtime the app reads them via System.getenv(...)
+      # (GITLAB_API_TOKEN / GITLAB_API_PROJECT_ID / GITLAB_API_BASE_URL).
+      - name: Verify required secrets are present
+        env:
+          GITLAB_API_TOKEN: ${{ secrets.GITLAB_API_TOKEN }}
+          GITLAB_API_PROJECT_ID: ${{ secrets.GITLAB_API_PROJECT_ID }}
+        run: |
+          if [ -z "$GITLAB_API_TOKEN" ] || [ -z "$GITLAB_API_PROJECT_ID" ]; then
+            echo "::error::Missing required secrets. Add GITLAB_API_TOKEN and GITLAB_API_PROJECT_ID in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "Required secrets are present."
+
+      - name: Run tests
+        env:
+          GITLAB_API_TOKEN: ${{ secrets.GITLAB_API_TOKEN }}
+          GITLAB_API_PROJECT_ID: ${{ secrets.GITLAB_API_PROJECT_ID }}
+          # Optional: only needed for self-hosted GitLab; defaults to gitlab.com
+          GITLAB_API_BASE_URL: ${{ secrets.GITLAB_API_BASE_URL }}
+        run: mvn -B clean test
+
+      - name: Generate Allure HTML report
+        if: always()   # build the report even when tests fail
+        run: mvn -B allure:report
+
+      - name: Upload Allure results
+        if: always()   # upload even if tests fail
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: target/allure-results
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload Surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload Allure HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: target/site/allure-maven-plugin
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload Pages artifact
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: target/site/allure-maven-plugin
+
+  # Publish the generated Allure HTML report to GitHub Pages.
+  deploy-report:
+    name: Publish Allure Report to Pages
+    needs: test
+    if: always()   # publish the report even if tests failed
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
