@@ -1,16 +1,10 @@
-# Compiled class file
+# ---------------------------------------------------------------------------
+# Build output
+# ---------------------------------------------------------------------------
+target/
 *.class
 
-# Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
+# Packaged artefacts
 *.jar
 *.war
 *.nar
@@ -19,17 +13,41 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-
-#Adds
-.vscode
-.idea
-target
+# ---------------------------------------------------------------------------
+# IDE
+# ---------------------------------------------------------------------------
+.idea/
 *.iml
+.vscode/
+*.ctxt
 
-# Local secrets / environment overrides - never commit these
+# ---------------------------------------------------------------------------
+# Secrets
+#
+# Credentials are supplied through environment variables, never a file. These
+# patterns catch the usual accidents; application.properties itself IS tracked
+# because it holds only non-sensitive settings and documents the available keys.
+# ---------------------------------------------------------------------------
 .env
 .env.*
 *.properties
-application.properties
+secrets.properties
+
+# ---------------------------------------------------------------------------
+# Test reports
+# ---------------------------------------------------------------------------
+allure-results/
+allure-report/
+.allure/
+
+# ---------------------------------------------------------------------------
+# JVM crash logs
+# ---------------------------------------------------------------------------
+hs_err_pid*
+replay_pid*
+
+# ---------------------------------------------------------------------------
+# OS
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db

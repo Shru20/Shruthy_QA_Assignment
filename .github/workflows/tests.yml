@@ -2,26 +2,49 @@ name: GitLab Issues API Tests
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ master ]
   pull_request:
-    branches: [ main, master, develop ]
-  workflow_dispatch:   # allow manual runs from the Actions tab
+    branches: [ master ]
+  schedule:
+    - cron: '0 6 * * 1'   # Monday 06:00 UTC — catches upstream API drift
+  workflow_dispatch:
 
-# Permissions required to deploy the Allure report to GitHub Pages.
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow only one concurrent Pages deployment.
+# Deliberately a single global group, not keyed on ref.
+#
+# The suite creates and deletes issues in one shared GitLab project, so
+# concurrent runs would interleave writes: pagination, sort-order and
+# iid-monotonicity assertions all assume no other run is mutating the
+# project. Serialising every run is the cheapest way to guarantee that.
+# It also satisfies the single-deployment requirement for Pages.
 concurrency:
-  group: "pages"
+  group: gitlab-issues-api-tests
   cancel-in-progress: false
+
+env:
+  # Base URL is configuration, not a credential — a repository variable keeps
+  # it visible in logs for debugging. Unset is fine: the suite defaults to
+  # gitlab.com.
+  GITLAB_API_BASE_URL: ${{ vars.GITLAB_API_BASE_URL }}
 
 jobs:
   test:
     name: Run API Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Forks cannot read secrets, so the suite cannot authenticate. Skipping is
+    # honest; running would fail at the credential check and look like a test
+    # failure rather than a permissions boundary.
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request'
+
+    env:
+      GITLAB_API_TOKEN: ${{ secrets.GITLAB_API_TOKEN }}
+      GITLAB_API_PROJECT_ID: ${{ secrets.GITLAB_API_PROJECT_ID }}
 
     steps:
       - name: Checkout repository
@@ -34,40 +57,39 @@ jobs:
           java-version: '17'
           cache: maven
 
-      # Credentials come from repository secrets and are exposed as environment
-      # variables. At runtime the app reads them via System.getenv(...)
-      # (GITLAB_API_TOKEN / GITLAB_API_PROJECT_ID / GITLAB_API_BASE_URL).
+      # BaseTest fails fast on missing config, but that surfaces as 40+ test
+      # errors. Checking here produces one actionable annotation instead.
       - name: Verify required secrets are present
-        env:
-          GITLAB_API_TOKEN: ${{ secrets.GITLAB_API_TOKEN }}
-          GITLAB_API_PROJECT_ID: ${{ secrets.GITLAB_API_PROJECT_ID }}
         run: |
           if [ -z "$GITLAB_API_TOKEN" ] || [ -z "$GITLAB_API_PROJECT_ID" ]; then
-            echo "::error::Missing required secrets. Add GITLAB_API_TOKEN and GITLAB_API_PROJECT_ID in Settings > Secrets and variables > Actions."
+            echo "::error::Missing credentials. Add GITLAB_API_TOKEN and GITLAB_API_PROJECT_ID under Settings > Secrets and variables > Actions."
             exit 1
           fi
-          echo "Required secrets are present."
 
       - name: Run tests
-        env:
-          GITLAB_API_TOKEN: ${{ secrets.GITLAB_API_TOKEN }}
-          GITLAB_API_PROJECT_ID: ${{ secrets.GITLAB_API_PROJECT_ID }}
-          # Optional: only needed for self-hosted GitLab; defaults to gitlab.com
-          GITLAB_API_BASE_URL: ${{ secrets.GITLAB_API_BASE_URL }}
-        run: mvn -B clean test
+        run: mvn -B -ntp clean test
 
       - name: Generate Allure HTML report
-        if: always()   # build the report even when tests fail
-        run: mvn -B allure:report
+        if: always()
+        run: mvn -B -ntp allure:report
+
+      - name: Publish test results to the run summary
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: JUnit results
+          path: target/surefire-reports/TEST-*.xml
+          reporter: java-junit
+          fail-on-error: false
 
       - name: Upload Allure results
-        if: always()   # upload even if tests fail
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: allure-results
           path: target/allure-results
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 14
 
       - name: Upload Surefire reports
         if: always()
@@ -76,29 +98,23 @@ jobs:
           name: surefire-reports
           path: target/surefire-reports
           if-no-files-found: ignore
-          retention-days: 30
+          retention-days: 14
 
-      - name: Upload Allure HTML report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-report
-          path: target/site/allure-maven-plugin
-          if-no-files-found: warn
-          retention-days: 30
-
+      # Only the default branch publishes to Pages. Uploading from every branch
+      # would have feature work and PRs overwrite the canonical report.
       - name: Upload Pages artifact
-        if: always()
+        if: always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: target/site/allure-maven-plugin
 
-  # Publish the generated Allure HTML report to GitHub Pages.
   deploy-report:
     name: Publish Allure Report to Pages
     needs: test
-    if: always()   # publish the report even if tests failed
+    # Runs on failure so a red report is still published, but not on cancel.
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

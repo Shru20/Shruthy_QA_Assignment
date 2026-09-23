@@ -7,64 +7,57 @@
     <groupId>com.abnamro</groupId>
     <artifactId>qa-backend-assignment</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <name>GitLab Issues API Test Suite</name>
+    <description>
+        Automated CRUD and edge-case tests for the GitLab Issues API, built on REST Assured,
+        JUnit 5 and AssertJ. No GitLab-specific client library is used: the API itself is the
+        system under test, so requests are constructed directly.
+    </description>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <!-- Library Versions -->
-        <junit.version>5.10.0</junit.version>
+        <junit.version>5.10.2</junit.version>
         <rest-assured.version>5.4.0</rest-assured.version>
+        <assertj.version>3.25.3</assertj.version>
         <allure.version>2.25.0</allure.version>
-        <faker.version>1.0.2</faker.version>
         <gson.version>2.10.1</gson.version>
-        <jackson.version>2.15.3</jackson.version>
-        <slf4j.version>2.0.9</slf4j.version>
+        <faker.version>1.0.2</faker.version>
+        <slf4j.version>2.0.12</slf4j.version>
         <logback.version>1.4.14</logback.version>
-        <assertj.version>3.24.1</assertj.version>
-        <httpclient.version>4.5.14</httpclient.version>
-        <commons-lang.version>3.13.0</commons-lang.version>
-        <config.version>1.4.2</config.version>
+
+        <surefire.plugin.version>3.2.5</surefire.plugin.version>
+        <compiler.plugin.version>3.12.1</compiler.plugin.version>
+        <allure.plugin.version>2.12.0</allure.plugin.version>
     </properties>
 
     <dependencies>
-        <!-- JUnit 5 -->
+        <!-- JUnit 5: aggregator brings api, params and engine together. -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
+            <artifactId>junit-jupiter</artifactId>
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
 
-        <!-- REST Assured -->
+        <!-- HTTP client for the API under test. -->
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
             <version>${rest-assured.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Fluent assertions. -->
         <dependency>
-            <groupId>io.rest-assured</groupId>
-            <artifactId>json-schema-validator</artifactId>
-            <version>${rest-assured.version}</version>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj.version}</version>
             <scope>test</scope>
         </dependency>
 
-        <!-- JSON Processing -->
+        <!-- Request payload serialisation and response deserialisation. -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
@@ -72,35 +65,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Jackson -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>${jackson.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Allure -->
-        <dependency>
-            <groupId>io.qameta.allure</groupId>
-            <artifactId>allure-junit5</artifactId>
-            <version>${allure.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.qameta.allure</groupId>
-            <artifactId>allure-rest-assured</artifactId>
-            <version>${allure.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Faker -->
+        <!-- Test data generation. -->
         <dependency>
             <groupId>com.github.javafaker</groupId>
             <artifactId>javafaker</artifactId>
@@ -108,7 +73,20 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Logging -->
+        <!--
+          Allure reporting. allure-rest-assured is deliberately NOT included: its
+          filter attaches full request headers to the report, which would publish
+          the PRIVATE-TOKEN to the GitHub Pages site. @Step annotations on the
+          client already give per-call visibility without that exposure.
+        -->
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-junit5</artifactId>
+            <version>${allure.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Logging. -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -121,106 +99,50 @@
             <version>${logback.version}</version>
             <scope>test</scope>
         </dependency>
-
-        <!-- Assertions -->
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>${assertj.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- HTTP Client -->
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>${httpclient.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Apache Commons -->
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>${commons-lang.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Configuration -->
-        <dependency>
-            <groupId>com.typesafe</groupId>
-            <artifactId>config</artifactId>
-            <version>${config.version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0</version>
-                <configuration>
-                    <systemPropertyVariables>
-                        <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
-                    </systemPropertyVariables>
-                    <includes>
-                        <include>**/*Test.java</include>
-                        <include>**/*Tests.java</include>
-                    </includes>
-                    <parallel>methods</parallel>
-                    <threadCount>4</threadCount>
-                </configuration>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${compiler.plugin.version}</version>
             </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.0.0</version>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire.plugin.version}</version>
                 <configuration>
+                    <!--
+                      Execution is sequential by design. Every test shares one GitLab
+                      project, and several assertions depend on its state being stable
+                      for the duration of a test: the pagination tests assert exact page
+                      contents, the default-sort test asserts relative ordering, and the
+                      label filter tests assert an exact result count. Running methods in
+                      parallel would let one test's writes appear in another's result set
+                      and produce failures unrelated to the API.
+                    -->
                     <includes>
-                        <include>**/*IT.java</include>
+                        <include>**/*Tests.java</include>
                     </includes>
+                    <systemPropertyVariables>
+                        <allure.results.directory>
+                            ${project.build.directory}/allure-results
+                        </allure.results.directory>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
 
             <plugin>
                 <groupId>io.qameta.allure</groupId>
                 <artifactId>allure-maven</artifactId>
-                <version>2.12.0</version>
+                <version>${allure.plugin.version}</version>
                 <configuration>
-                    <reportVersion>2.20.1</reportVersion>
-                    <!-- HTML report output; referenced by the GitHub Pages workflow -->
+                    <reportVersion>2.25.0</reportVersion>
+                    <!-- Output path referenced by the GitHub Pages workflow. -->
                     <reportDirectory>${project.build.directory}/site/allure-maven-plugin</reportDirectory>
                 </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
-                <configuration>
-                    <source>17</source>
-                    <target>17</target>
-                    <release>17</release>
-                    <encoding>UTF-8</encoding>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>3.3.1</version>
-                <configuration>
-                    <encoding>UTF-8</encoding>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.3.0</version>
             </plugin>
         </plugins>
     </build>
