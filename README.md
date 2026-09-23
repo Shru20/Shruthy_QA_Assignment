@@ -236,7 +236,7 @@ mvn test -Dlog.level=DEBUG                              # verbose request loggin
 Tags: `CREATE`, `READ`, `UPDATE`, `DELETE`, `EDGE_CASE`, `Smoke`.
 
 ``` GitHub Actions CI
-Navigate to the repository → Actions → *New workflow* → On the left side bar *GitLab Issues API Tests* -> Use workflow from 
+Navigate to the repository → Actions → On the left side bar *GitLab Issues API Tests* → *Run workflow* → Use workflow from 
 (Choose branch as `master`) → Run workflow. The workflow runs the suite.
 Allure report link will be available in the workflow summary.
 ```
