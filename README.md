@@ -80,11 +80,11 @@ in a way that costs them data.
 
 | Area | Class | Tests       | Focus |
 |---|---|-------------|---|
-| Create | `IssueCreateTests` | TC001–TC008 | mandatory fields, labels, HTML content, duplicate titles, 255-char boundary either side, empty and whitespace-only titles |
-| Read | `IssueReadTests` | TC040–TC059 | single fetch, response contract, filters by state and label, pagination, page overlap, default sort, invalid identifiers |
-| Update | `IssueUpdateTests` | TC060–TC081 | field updates, partial-update safety, state transitions and idempotency, `labels` vs `add_labels` vs `remove_labels`, `due_date` handling |
-| Delete | `IssueDeleteTests` | TC009–TC022 | deletion and verification, double-delete semantics, iid non-reuse, auth refusal with no side effect |
-| Edge cases | `IssueEdgeCaseTests` | TC023–TC039 | Unicode and emoji, script and SQL-like input, large payloads, label boundaries, malformed JSON, pagination limits, confidentiality |
+| Create | `IssueCreateTests` | TC001–TC012 | mandatory fields, labels, HTML content, duplicate titles, 255-char boundary either side, empty and whitespace-only titles |
+| Read | `IssueReadTests` | TC044–TC063 | single fetch, response contract, filters by state and label, pagination, page overlap, default sort, invalid identifiers |
+| Update | `IssueUpdateTests` | TC064–TC085 | field updates, partial-update safety, state transitions and idempotency, `labels` vs `add_labels` vs `remove_labels`, `due_date` handling |
+| Delete | `IssueDeleteTests` | TC013–TC026 | deletion and verification, double-delete semantics, iid non-reuse, auth refusal with no side effect |
+| Edge cases | `IssueEdgeCaseTests` | TC027–TC043 | Unicode and emoji, script and SQL-like input, large payloads, label boundaries, malformed JSON, pagination limits, confidentiality |
 
 **What these tests are built to catch,** beyond status codes:
 
@@ -232,6 +232,11 @@ mvn test -Dtest=IssueUpdateTests#testCloseIssue         # one method
 mvn test -Dgroups="CREATE"                              # by tag
 mvn test -Dgroups="Smoke"                               # smoke subset
 mvn test -Dlog.level=DEBUG                              # verbose request logging
+
+`-Dlog.level=DEBUG` logs every request and response. Credential headers are
+redacted by `RequestResponseLoggingFilter`, so the output is safe to paste into
+a ticket or attach to a CI run.
+
 ```
 Tags: `CREATE`, `READ`, `UPDATE`, `DELETE`, `EDGE_CASE`, `Smoke`.
 

@@ -41,7 +41,7 @@ class IssueDeleteTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC009: Delete an existing issue")
+  @DisplayName("TC013: Delete an existing issue")
   @Description(
       "A successful delete must return 204 No Content with an empty body. The status is "
           + "asserted exactly rather than 'any 2xx': a 200 carrying a body would mean the endpoint "
@@ -58,7 +58,7 @@ class IssueDeleteTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC010: Deleted issue cannot be retrieved")
+  @DisplayName("TC014: Deleted issue cannot be retrieved")
   @Description(
       "Verifies the delete removed the resource rather than merely reporting success. A "
           + "subsequent GET must return 404 — a soft delete that left the issue readable would pass "
@@ -72,7 +72,7 @@ class IssueDeleteTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC011: Deleted issue is absent from the project issue list")
+  @DisplayName("TC015: Deleted issue is absent from the project issue list")
   @Description(
       "Complements TC302 by checking the list projection rather than direct retrieval. "
           + "Filtering by exact iid via 'iids[]' keeps this deterministic: that filter is an indexed "
@@ -89,7 +89,7 @@ class IssueDeleteTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC012: Delete a closed issue")
+  @DisplayName("TC016: Delete a closed issue")
   @Description(
       "Deletion must be independent of state. Closing is a lifecycle transition and "
           + "deletion is removal, so a closed issue remains deletable — a 4xx here would mean the two "
@@ -104,7 +104,7 @@ class IssueDeleteTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC013: Delete an issue carrying labels and a description")
+  @DisplayName("TC017: Delete an issue carrying labels and a description")
   @Description(
       "A fully populated issue has label links and other dependent records. Deleting it "
           + "must succeed cleanly rather than failing on a constraint, exercising a cascade path a "
@@ -133,7 +133,7 @@ class IssueDeleteTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC014: Deleting the same issue twice returns 404 on the second call")
+  @DisplayName("TC018: Deleting the same issue twice returns 404 on the second call")
   @Description(
       "DELETE is idempotent in effect but not in status code: the resource is gone either "
           + "way, yet only the first call finds something to delete. Pinning the second response to 404 "
@@ -150,7 +150,7 @@ class IssueDeleteTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC015: A deleted iid is never reassigned")
+  @DisplayName("TC019: A deleted iid is never reassigned")
   @Description(
       "The project-scoped iid counter is monotonic and does not roll back on deletion. "
           + "Recycling an iid would be a serious defect: bookmarks, external tickets and audit records "
@@ -167,7 +167,7 @@ class IssueDeleteTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC016: Deleting an issue frees its title for reuse")
+  @DisplayName("TC020: Deleting an issue frees its title for reuse")
   @Description(
       "Titles are neither unique nor reserved after deletion. Recreating an issue with the "
           + "title of a deleted one must succeed, confirming deletion releases any incidental "
@@ -189,7 +189,7 @@ class IssueDeleteTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC017: Delete a non-existent issue")
+  @DisplayName("TC021: Delete a non-existent issue")
   @Description(
       "An iid that has never existed must return 404 with a JSON error payload. The "
           + "content type is asserted so clients can parse errors with the same deserialiser they use "
@@ -202,7 +202,7 @@ class IssueDeleteTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC018: Delete with iid zero")
+  @DisplayName("TC022: Delete with iid zero")
   @Description(
       "Zero lies outside the valid range — iids start at 1. A classic off-by-one probe: an "
           + "implementation treating the identifier as a falsy or default value could mis-route the "
@@ -215,7 +215,7 @@ class IssueDeleteTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC019: Delete with a negative iid")
+  @DisplayName("TC023: Delete with a negative iid")
   @Description(
       "A negative identifier can never match a record. The assertion that matters is the "
           + "absence of a 5xx: an unhandled cast or unguarded query on this input would surface as a "
@@ -229,7 +229,7 @@ class IssueDeleteTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC020: Delete an issue without authentication")
+  @DisplayName("TC024: Delete an issue without authentication")
   @Description(
       "An unauthenticated destructive call must be refused at the authentication layer "
           + "with 401, before any lookup occurs. The issue's survival is verified afterwards, proving "
@@ -243,7 +243,7 @@ class IssueDeleteTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC021: Delete an issue with an invalid token")
+  @DisplayName("TC025: Delete an issue with an invalid token")
   @Description(
       "Distinct from TC312: credentials are supplied but invalid. This must also yield 401 "
           + "rather than 403 — the request is unauthenticated, not merely unauthorised — and the issue "
@@ -257,7 +257,7 @@ class IssueDeleteTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC022: Delete an issue from a non-existent project")
+  @DisplayName("TC026: Delete an issue from a non-existent project")
   @Description(
       "With an unknown project in the path the request must fail at project resolution and "
           + "never reach issue lookup. Confirms project scope is enforced and that an iid cannot be "

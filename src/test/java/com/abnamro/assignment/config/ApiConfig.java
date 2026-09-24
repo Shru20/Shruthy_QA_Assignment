@@ -1,5 +1,6 @@
 package com.abnamro.assignment.config;
 
+import com.abnamro.assignment.util.RequestResponseLoggingFilter;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
@@ -115,7 +116,8 @@ public final class ApiConfig {
     return new RequestSpecBuilder()
         .setBaseUri(getBaseUrl())
         .setContentType(ContentType.JSON)
-        .setAccept(ContentType.JSON);
+        .setAccept(ContentType.JSON)
+        .addFilter(new RequestResponseLoggingFilter());
   }
 
   /**
