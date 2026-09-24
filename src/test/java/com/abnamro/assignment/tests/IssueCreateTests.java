@@ -9,7 +9,9 @@ import com.abnamro.assignment.util.TestDataGenerator;
 import io.qameta.allure.Description;
 import io.qameta.allure.Feature;
 import io.restassured.response.Response;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,8 @@ class IssueCreateTests extends BaseTest {
 
   /** GitLab enforces a 255-character maximum on issue titles. */
   private static final int MAX_TITLE_LENGTH = 255;
+
+  private static final int MAX_DESCRIPTION_LENGTH = 1_048_576;
 
   // ---------------------------------------------------------------------------------
   // Happy path
@@ -118,12 +122,50 @@ class IssueCreateTests extends BaseTest {
         .isNotEqualTo(first.getIid());
   }
 
+  @Test
+  @DisplayName("TC005: A previously unseen label is created on the project")
+  @Description(
+      "Applying a label that does not exist creates it as a project label, a documented "
+          + "side effect that reaches beyond the issue being created. Worth pinning because it is easy "
+          + "to overlook: a typo in an automation script silently pollutes the project's label list, "
+          + "and there is no error to indicate it happened.")
+  void testUnknownLabelIsCreatedOnTheProject() {
+    String newLabel = TestDataGenerator.generateLabel();
+
+    Response response =
+        createAndTrack(
+            getClient()
+                .createIssue(
+                    TestDataGenerator.generateIssueTitle(), null, List.of(newLabel), null, null));
+
+    assertThat(getClient().parseIssueFromResponse(response).getLabels())
+        .as("A label that did not previously exist must be created and applied")
+        .containsExactly(newLabel);
+
+    Response listed = getClient().listIssues(null, newLabel, null);
+    ApiAssertions.assertStatusCodeOk(listed);
+    ApiAssertions.assertListSize(listed, "$", 1);
+  }
+
+  @Test
+  @DisplayName("TC006: Omitting the title is rejected")
+  @Description(
+      "Distinct from TC007's empty string: the parameter is absent rather than blank. "
+          + "A validator checking only for emptiness would accept a missing key and create an "
+          + "untitled issue, so both forms need covering.")
+  void testMissingTitleIsRejected() {
+    Response response = getClient().createIssue(Map.of("description", "no title supplied"));
+
+    ApiAssertions.assertStatusCodeBadRequest(response);
+    ApiAssertions.assertResponseContains(response, "title");
+  }
+
   // ---------------------------------------------------------------------------------
   // Boundary conditions
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC005: Create issue with title at the 255-character limit")
+  @DisplayName("TC007: Create issue with title at the 255-character limit")
   @Description(
       "Upper boundary, valid side. A title of exactly 255 characters is within the "
           + "documented limit and must be stored in full. The returned length is asserted explicitly "
@@ -140,7 +182,7 @@ class IssueCreateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC006: Create issue with title one character over the limit")
+  @DisplayName("TC008: Create issue with title one character over the limit")
   @Description(
       "Upper boundary, invalid side. A 256-character title exceeds the limit and must be "
           + "rejected with 400 naming the offending field. The failure mode that matters is silent "
@@ -159,7 +201,7 @@ class IssueCreateTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC007: Create issue with empty title")
+  @DisplayName("TC009: Create issue with empty title")
   @Description(
       "Title is the sole mandatory field, so an empty value violates the required-field "
           + "constraint and must be rejected with 400 rather than creating an untitled issue.")
@@ -171,7 +213,7 @@ class IssueCreateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC008: Create issue with whitespace-only title")
+  @DisplayName("TC010: Create issue with whitespace-only title")
   @Description(
       "GitLab trims leading and trailing whitespace before validating that a title is "
           + "present, so spaces and tabs reduce to empty and must be rejected exactly as TC007 is. "
@@ -181,6 +223,70 @@ class IssueCreateTests extends BaseTest {
 
     ApiAssertions.assertStatusCodeBadRequest(response);
     ApiAssertions.assertResponseContains(response, "title");
+  }
+
+  @Test
+  @DisplayName("TC011: Create issue with a full payload")
+  @Description(
+      "Every self-sufficient optional parameter supplied in a single request. The "
+          + "field-specific tests above each verify one parameter in isolation, which would not catch "
+          + "an endpoint that honours only the first recognised field or drops one when several are "
+          + "present. issue_type is set to a non-default value deliberately: asserting 'issue' would "
+          + "pass even if the parameter were ignored entirely. Premium-only parameters "
+          + "(assignee_ids, epic_id, weight) and those requiring pre-provisioned entities "
+          + "(assignee_id, milestone) are excluded — see README section 10.")
+  void testCreateIssueWithFullPayload() {
+    String title = TestDataGenerator.generateIssueTitle();
+    String description = TestDataGenerator.generateIssueDescription();
+    List<String> labels = TestDataGenerator.generateLabels(2);
+    String dueDate = LocalDate.now().plusDays(30).toString();
+
+    Response response =
+        createAndTrack(
+            getClient()
+                .createIssue(
+                    Map.of(
+                        "title",
+                        title,
+                        "description",
+                        description,
+                        "labels",
+                        String.join(",", labels),
+                        "due_date",
+                        dueDate,
+                        "confidential",
+                        true,
+                        "issue_type",
+                        "task")));
+
+    ApiAssertions.assertFieldEquals(response, "title", title);
+    ApiAssertions.assertFieldEquals(response, "description", description);
+    ApiAssertions.assertFieldEquals(response, "due_date", dueDate);
+    ApiAssertions.assertFieldEquals(response, "confidential", true);
+    ApiAssertions.assertFieldEquals(response, "issue_type", "task");
+    ApiAssertions.assertFieldEquals(response, "state", "opened");
+    ApiAssertions.assertFieldsNotNull(response, "id", "iid", "created_at", "web_url");
+
+    assertThat(getClient().parseIssueFromResponse(response).getLabels())
+        .as("Labels must still be applied when supplied alongside other parameters")
+        .containsExactlyInAnyOrderElementsOf(labels);
+  }
+
+  @Test
+  @DisplayName("TC012: Create issue with a description at the documented limit")
+  @Description(
+      "The description limit is 1,048,576 characters. TC406 in the edge-case suite "
+          + "exercises 100,000, which sits comfortably inside and therefore says nothing about the "
+          + "boundary. Storing the full value matters because descriptions carry stack traces and log "
+          + "excerpts, and truncation at the limit is data loss the caller cannot detect.")
+  void testCreateIssueWithDescriptionAtMaxLength() {
+    String description = "x".repeat(MAX_DESCRIPTION_LENGTH);
+
+    Response response = createAndTrack(TestDataGenerator.generateIssueTitle(), description);
+
+    assertThat(getClient().parseIssueFromResponse(response).getDescription())
+        .as("A description at the limit must be stored without truncation")
+        .hasSize(MAX_DESCRIPTION_LENGTH);
   }
 
   // ---------------------------------------------------------------------------------

@@ -45,7 +45,7 @@ class IssueUpdateTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC060: Update issue title")
+  @DisplayName("TC064: Update issue title")
   @Description(
       "Changing the title must return 200 with the new value and advance updated_at. "
           + "created_at is asserted unchanged: an implementation that recreates rather than mutates the "
@@ -68,7 +68,7 @@ class IssueUpdateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC061: Update issue description")
+  @DisplayName("TC065: Update issue description")
   @Description(
       "Sets a description on an issue created without one, confirming null-to-value "
           + "transitions work and that a description-only update leaves the title untouched.")
@@ -85,7 +85,7 @@ class IssueUpdateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC062: A partial update leaves unspecified fields intact")
+  @DisplayName("TC066: A partial update leaves unspecified fields intact")
   @Description(
       "The defining risk of PUT-based updates: a request carrying only the title must not "
           + "clear the description or labels. This is the most valuable test in the class — every "
@@ -110,7 +110,7 @@ class IssueUpdateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC063: Update multiple fields in a single call")
+  @DisplayName("TC067: Update multiple fields in a single call")
   @Description(
       "Title, description and labels changed together must all take effect, verifying the "
           + "payload is applied as a whole rather than the server honouring only the first recognised "
@@ -136,7 +136,7 @@ class IssueUpdateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC064: Update is persisted, not merely echoed")
+  @DisplayName("TC068: Update is persisted, not merely echoed")
   @Description(
       "The update response could in principle reflect the request rather than stored "
           + "state. Re-reading through a separate GET proves the change was committed — without this, "
@@ -154,7 +154,7 @@ class IssueUpdateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC065: Unicode and emoji survive an update")
+  @DisplayName("TC069: Unicode and emoji survive an update")
   @Description(
       "Multi-byte characters must round-trip byte-for-byte through the update path. "
           + "Catches encoding faults a pure-ASCII suite never reaches, and the follow-up read confirms "
@@ -175,7 +175,7 @@ class IssueUpdateTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC066: Close an open issue")
+  @DisplayName("TC070: Close an open issue")
   @Description(
       "Closing must set state to closed and populate closed_at, which is null while the "
           + "issue is open and is the only record of when the transition happened. Asserting the "
@@ -193,7 +193,7 @@ class IssueUpdateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC067: Reopen a closed issue")
+  @DisplayName("TC071: Reopen a closed issue")
   @Description(
       "Reopening must restore state to opened and clear closed_at. A stale closed_at on an "
           + "open issue would corrupt any reporting that derives cycle time from that field.")
@@ -208,7 +208,7 @@ class IssueUpdateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC068: Closing an already closed issue is a no-op")
+  @DisplayName("TC072: Closing an already closed issue is a no-op")
   @Description(
       "State transitions are idempotent: re-closing must return 200 and leave the issue "
           + "closed rather than erroring. Clients retrying after a timeout depend on this — a 4xx on "
@@ -223,7 +223,7 @@ class IssueUpdateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC069: Reopening an already open issue is a no-op")
+  @DisplayName("TC073: Reopening an already open issue is a no-op")
   @Description(
       "The mirror of TC209, covering the reopen branch of the state machine — implemented "
           + "independently of close and therefore able to regress separately.")
@@ -237,7 +237,7 @@ class IssueUpdateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC070: A closed issue's fields remain editable")
+  @DisplayName("TC074: A closed issue's fields remain editable")
   @Description(
       "Closing is a state transition, not a lock. Editing the title of a closed issue must "
           + "succeed without silently reopening it — an implementation treating any update as activity "
@@ -258,7 +258,7 @@ class IssueUpdateTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC071: The labels parameter replaces the entire set")
+  @DisplayName("TC075: The labels parameter replaces the entire set")
   @Description(
       "Sending 'labels' is wholesale replacement, not a merge. Asserting the original "
           + "labels are gone is the point: a merge implementation would return a superset that a "
@@ -278,7 +278,7 @@ class IssueUpdateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC072: add_labels appends without removing existing labels")
+  @DisplayName("TC076 add_labels appends without removing existing labels")
   @Description(
       "The incremental counterpart to TC212. Distinguishing the two matters because a "
           + "client reaching for 'labels' when it means 'add_labels' silently destroys labels applied by "
@@ -299,7 +299,7 @@ class IssueUpdateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC073: remove_labels removes only the named labels")
+  @DisplayName("TC077: remove_labels removes only the named labels")
   @Description(
       "Removal must be surgical. Asserting the untouched labels survive guards against an "
           + "implementation that clears the whole set whenever remove_labels is present.")
@@ -319,7 +319,7 @@ class IssueUpdateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC074 An empty labels value clears all labels")
+  @DisplayName("TC078 An empty labels value clears all labels")
   @Description(
       "Clearing is expressed as an empty string, not an omitted parameter — omission means "
           + "'leave unchanged'. The distinction is easy to get wrong in a client and impossible to "
@@ -338,7 +338,7 @@ class IssueUpdateTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC075: A non-ISO due_date is coerced rather than rejected")
+  @DisplayName("TC079: A non-ISO due_date is coerced rather than rejected")
   @Description(
       "Documents observed behaviour that differs from the documented contract. due_date is "
           + "specified as ISO-8601 (YYYY-MM-DD), but '31-12-2026' is accepted and silently normalised to "
@@ -354,7 +354,7 @@ class IssueUpdateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC076: An ambiguous non-ISO due_date is resolved day-first without warning")
+  @DisplayName("TC080: An ambiguous non-ISO due_date is resolved day-first without warning")
   @Description(
       "The consequence of the leniency in TC216. '01-02-2026' is valid under both "
           + "DD-MM-YYYY and MM-DD-YYYY conventions; the API resolves it day-first, so a client following "
@@ -376,7 +376,7 @@ class IssueUpdateTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC077: Update with no parameters is rejected")
+  @DisplayName("TC081: Update with no parameters is rejected")
   @Description(
       "An update naming nothing to change is meaningless and must be refused with 400 "
           + "rather than returning 200 and bumping updated_at. Silently accepting it would let a buggy "
@@ -391,7 +391,7 @@ class IssueUpdateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC078: Update title to an empty string is rejected")
+  @DisplayName("TC082: Update title to an empty string is rejected")
   @Description(
       "Title is mandatory at creation and that constraint must hold on update — an API "
           + "permitting it to be cleared lets a valid record become invalid after the fact. The issue is "
@@ -407,7 +407,7 @@ class IssueUpdateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC079: An unrecognised state_event is rejected")
+  @DisplayName("TC083: An unrecognised state_event is rejected")
   @Description(
       "state_event accepts only 'close' and 'reopen'. An arbitrary value must produce a "
           + "400 rather than being ignored: silently discarding an unrecognised transition would leave a "
@@ -422,7 +422,7 @@ class IssueUpdateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC080: Update a non-existent issue")
+  @DisplayName("TC084: Update a non-existent issue")
   @Description(
       "An iid that has never existed must return 404 with a JSON error payload, failing at "
           + "lookup before any write is attempted.")
@@ -434,7 +434,7 @@ class IssueUpdateTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC081: Update an issue without authentication")
+  @DisplayName("TC085: Update an issue without authentication")
   @Description(
       "An unauthenticated write must be refused at the authentication layer with 401. "
           + "Re-reading the issue proves the request was genuinely rejected rather than applied and then "

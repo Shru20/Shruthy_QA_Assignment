@@ -51,7 +51,7 @@ class IssueReadTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC040: Get issue by IID")
+  @DisplayName("TC044: Get issue by IID")
   @Description(
       "Retrieving a known issue must return 200 with the identifiers and title it was "
           + "created with. Confirms the read path resolves the specific record requested rather than "
@@ -76,7 +76,7 @@ class IssueReadTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC041: Issue response contains all contract fields")
+  @DisplayName("TC045: Issue response contains all contract fields")
   @Description(
       "Pins the single-issue response contract. Every field asserted is one a client would "
           + "reasonably depend on; silent removal in a future API version is exactly the regression this "
@@ -105,7 +105,7 @@ class IssueReadTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC042: Retrieved issue reflects the full created payload")
+  @DisplayName("TC046: Retrieved issue reflects the full created payload")
   @Description(
       "A read must return every attribute that was written, not just identifiers. Creates "
           + "an issue with description and labels, then verifies all three round-trip through a separate "
@@ -130,7 +130,7 @@ class IssueReadTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC043: Get a closed issue")
+  @DisplayName("TC047: Get a closed issue")
   @Description(
       "A closed issue stays readable — closing is a state transition, not removal. Also "
           + "asserts closed_at is populated, since it is null while the issue is open and is the only "
@@ -147,7 +147,7 @@ class IssueReadTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC044: Reading an issue does not modify it")
+  @DisplayName("TC048: Reading an issue does not modify it")
   @Description(
       "GET must be safe. Comparing updated_at against the value from creation proves the "
           + "read has no side effects — an endpoint that touched the record would corrupt any client "
@@ -166,7 +166,7 @@ class IssueReadTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC045: List all issues in the project")
+  @DisplayName("TC049: List all issues in the project")
   @Description(
       "The list endpoint must return 200 and a JSON array. An issue is seeded first so the "
           + "assertion has teeth: asserting a list is non-null proves nothing, whereas asserting it is "
@@ -190,7 +190,7 @@ class IssueReadTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC046: A newly created issue appears in the project list")
+  @DisplayName("TC050: A newly created issue appears in the project list")
   @Description(
       "Verifies the write is visible through the list projection, not only via direct "
           + "retrieval. Filters by exact iid rather than by search: iids[] is an indexed exact match and "
@@ -207,7 +207,7 @@ class IssueReadTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC047: Filter issues by state=opened")
+  @DisplayName("TC051: Filter issues by state=opened")
   @Description(
       "Seeds one open and one closed issue so both branches of the filter are exercised, "
           + "then asserts every result is open and the closed one is absent. Without seeding, an empty "
@@ -232,7 +232,7 @@ class IssueReadTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC048: Filter issues by state=closed")
+  @DisplayName("TC052: Filter issues by state=closed")
   @Description(
       "The mirror of TC108. Asserting both directions matters because a filter that is "
           + "silently ignored returns everything, which would still satisfy a one-sided check on a "
@@ -257,7 +257,7 @@ class IssueReadTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC049: Filter issues by label")
+  @DisplayName("TC053: Filter issues by label")
   @Description(
       "Labels are generated uniquely per run, so the expected result set is fully "
           + "determined by this test's own data and cannot be polluted by leftovers from other runs. A "
@@ -280,7 +280,7 @@ class IssueReadTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC050: A filter matching nothing returns an empty array, not 404")
+  @DisplayName("TC054: A filter matching nothing returns an empty array, not 404")
   @Description(
       "An empty result set is a successful query with no matches, not a missing resource. "
           + "A 404 here would force every client to treat 'no results' as an error condition. Uses a "
@@ -299,7 +299,7 @@ class IssueReadTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC051: per_page limits results and sets pagination headers")
+  @DisplayName("TC055: per_page limits results and sets pagination headers")
   @Description(
       "Requests a single result from a project seeded with two issues. Asserts the body "
           + "size and the pagination headers together: clients rely on X-Next-Page to decide whether to "
@@ -318,7 +318,7 @@ class IssueReadTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC052: Consecutive pages do not overlap")
+  @DisplayName("TC056: Consecutive pages do not overlap")
   @Description(
       "Targets an off-by-one in the offset calculation, which yields a plausible-looking "
           + "page that repeats or skips records. Comparing iids across page one and page two is the only "
@@ -342,7 +342,7 @@ class IssueReadTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC053: per_page above the documented cap is clamped, not honoured")
+  @DisplayName("TC057: per_page above the documented cap is clamped, not honoured")
   @Description(
       "GitLab caps page size at 100. Requesting 200 must return at most 100 rather than "
           + "erroring or honouring the request — an uncapped page size is a denial-of-service vector on "
@@ -355,7 +355,7 @@ class IssueReadTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC054: A page beyond the last returns an empty array")
+  @DisplayName("TC058: A page beyond the last returns an empty array")
   @Description(
       "Requesting a page far past the end is a boundary condition, not an error: the query "
           + "is valid and simply matches nothing. Must return 200 with an empty array rather than 404 or "
@@ -370,7 +370,7 @@ class IssueReadTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC055: Issues are sorted by creation date descending by default")
+  @DisplayName("TC059: Issues are sorted by creation date descending by default")
   @Description(
       "Newest-first is the documented default and the order every UI depends on. Two "
           + "issues are created in sequence and the newer must appear at the lower index. Asserting "
@@ -394,7 +394,7 @@ class IssueReadTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC056: Get a non-existent issue")
+  @DisplayName("TC060: Get a non-existent issue")
   @Description(
       "An iid that has never existed must return 404 with a JSON error payload. The "
           + "content type is asserted so clients can parse errors with the same deserialiser they use "
@@ -407,7 +407,7 @@ class IssueReadTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC057: Get with iid zero")
+  @DisplayName("TC061: Get with iid zero")
   @Description(
       "Zero lies outside the valid range — iids start at 1. A classic off-by-one probe: an "
           + "implementation treating the identifier as a falsy or default value could mis-route the "
@@ -420,7 +420,7 @@ class IssueReadTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC058: Get with a negative iid")
+  @DisplayName("TC062: Get with a negative iid")
   @Description(
       "A negative identifier can never match a record. The assertion that matters is the "
           + "absence of a 5xx: an unguarded query or failed cast on this input surfaces as a server "
@@ -434,7 +434,7 @@ class IssueReadTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC059: Get an issue from a non-existent project")
+  @DisplayName("TC063: Get an issue from a non-existent project")
   @Description(
       "With an unknown project in the path the request must fail at project resolution and "
           + "never reach issue lookup. Confirms project scope is genuinely enforced and that an iid "

@@ -41,7 +41,7 @@ class IssueEdgeCaseTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC023: Title with leading and trailing whitespace is trimmed")
+  @DisplayName("TC027: Title with leading and trailing whitespace is trimmed")
   @Description(
       "Whitespace around a title is almost always accidental, and storing it verbatim "
           + "produces titles that look identical but do not compare equal, breaking deduplication and "
@@ -55,7 +55,7 @@ class IssueEdgeCaseTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC024: Emoji and multi-byte characters survive creation")
+  @DisplayName("TC028: Emoji and multi-byte characters survive creation")
   @Description(
       "Titles are user-facing free text and will contain non-Latin scripts and emoji. "
           + "Round-tripping them byte-for-byte proves the whole path — request encoding, storage, "
@@ -71,7 +71,7 @@ class IssueEdgeCaseTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC025: Script tags in the description are stored verbatim")
+  @DisplayName("TC029: Script tags in the description are stored verbatim")
   @Description(
       "GitLab renders markdown at display time, so the API must persist input unmodified "
           + "and leave escaping to the renderer. Sanitising on write would corrupt legitimate content — "
@@ -89,7 +89,7 @@ class IssueEdgeCaseTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC026: SQL-like input is treated as literal text")
+  @DisplayName("TC030: SQL-like input is treated as literal text")
   @Description(
       "A title containing SQL syntax must be stored as data and returned intact. Any "
           + "deviation — an error, a truncated value, an altered string — would indicate the input is "
@@ -105,7 +105,7 @@ class IssueEdgeCaseTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC027: Newlines in a title are stored verbatim")
+  @DisplayName("TC031: Newlines in a title are stored verbatim")
   @Description(
       "Documents observed behaviour. A title is single-line in every rendering context — "
           + "list rows, page headings, notification subjects — yet embedded newlines are persisted "
@@ -128,7 +128,7 @@ class IssueEdgeCaseTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC028: A very long description is accepted")
+  @DisplayName("TC032: A very long description is accepted")
   @Description(
       "Descriptions carry stack traces and logs and are legitimately large. 100,000 "
           + "characters sits within GitLab's documented limit and must be stored in full — silent "
@@ -146,7 +146,7 @@ class IssueEdgeCaseTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC029: An over-long label is silently discarded, not rejected")
+  @DisplayName("TC033: An over-long label is silently discarded, not rejected")
   @Description(
       "Documents observed behaviour materially worse than the alternatives. A "
           + "1,000-character label exceeds GitLab's 255-character limit, yet the request returns 201 "
@@ -170,7 +170,7 @@ class IssueEdgeCaseTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC030: A comma in a label value splits it into separate labels")
+  @DisplayName("TC034: A comma in a label value splits it into separate labels")
   @Description(
       "The labels parameter is comma-delimited, making commas structurally significant and "
           + "therefore impossible to include in a label name. Documents the consequence: a client "
@@ -191,7 +191,7 @@ class IssueEdgeCaseTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC031: An issue can carry a large number of labels")
+  @DisplayName("TC035: An issue can carry a large number of labels")
   @Description(
       "Fifty labels is unusual but legitimate on a heavily triaged issue. All must be "
           + "persisted: a silently applied cap would drop categorisation that downstream automation "
@@ -214,7 +214,7 @@ class IssueEdgeCaseTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC032: A syntactically invalid JSON body is rejected")
+  @DisplayName("TC036: A syntactically invalid JSON body is rejected")
   @Description(
       "Malformed JSON must fail at parsing with a 4xx, not a 5xx. An unhandled parser "
           + "exception reaching the client as a server error is the specific defect this targets: it "
@@ -226,7 +226,7 @@ class IssueEdgeCaseTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC033: A JSON array where an object is expected is rejected")
+  @DisplayName("TC037: A JSON array where an object is expected is rejected")
   @Description(
       "Structurally valid JSON of the wrong shape must be refused. Deserialisers that "
           + "coerce rather than validate can accept an array and silently produce an empty object, "
@@ -238,7 +238,7 @@ class IssueEdgeCaseTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC034: An empty JSON object is rejected")
+  @DisplayName("TC038: An empty JSON object is rejected")
   @Description(
       "A create request naming no fields cannot satisfy the mandatory title, so it must "
           + "return 400 rather than creating an untitled issue. Distinct from TC411: the payload is "
@@ -251,7 +251,7 @@ class IssueEdgeCaseTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC035: An unrecognised issue_type is rejected")
+  @DisplayName("TC039: An unrecognised issue_type is rejected")
   @Description(
       "issue_type is an enumeration. An arbitrary value must be refused rather than "
           + "defaulting silently: a client believing it created an incident when it created a plain "
@@ -267,7 +267,7 @@ class IssueEdgeCaseTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC036: A non-numeric project identifier is rejected")
+  @DisplayName("TC040: A non-numeric project identifier is rejected")
   @Description(
       "The project path segment accepts a numeric id or a URL-encoded namespace path. A "
           + "value matching neither must resolve to 404 rather than a parsing error, and must certainly "
@@ -284,7 +284,7 @@ class IssueEdgeCaseTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC037: per_page=0 is rejected")
+  @DisplayName("TC041: per_page=0 is rejected")
   @Description(
       "Zero is not a meaningful page size, and the API refuses it with 400 and an explicit "
           + "message rather than substituting a default or returning an empty page. Either silent "
@@ -301,7 +301,7 @@ class IssueEdgeCaseTests extends BaseTest {
   }
 
   @Test
-  @DisplayName("TC038: A non-numeric per_page is rejected")
+  @DisplayName("TC042: A non-numeric per_page is rejected")
   @Description(
       "A page size that cannot be parsed as an integer must produce a 400 rather than "
           + "being coerced to zero or to the default. Silent coercion of malformed pagination hides "
@@ -318,7 +318,7 @@ class IssueEdgeCaseTests extends BaseTest {
   // ---------------------------------------------------------------------------------
 
   @Test
-  @DisplayName("TC039: A confidential issue is created and flagged")
+  @DisplayName("TC043: A confidential issue is created and flagged")
   @Description(
       "Confidentiality is an access-control attribute, so the flag must round-trip "
           + "exactly. An issue created as confidential but returned as public would mean restricted "
